@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShineCore Лаунчер</title>
+
+  <style>
+  :root {
+  --bg: #0b0f14;
+  --panel: #121920;
+  --text: #d9e1e8;
+  --sub: #8aa0b2;
+  --accent: #2ab27b;
+  --button-hover: #1a1f2a;
+  --close-hover: #e74c3c;
+  --sidebar-bg: rgba(18, 25, 32, 0.95);
+  --border: rgba(255, 255, 255, 0.1);
+  --launch-bg: #0000007a;
+  --launch-hover: #47474775;
+  --loading-color: #fbbf24;
+  --progress-bg: #2d3748;
+  --progress-fill: #fbbf24;
+  --error: #ef4444;
+  --success: #10b981;
+  --installed: #10b981;
+  --info: #3b82f6; /* <-- Добавь эту строку */
+  --warning: #f59e0b; /* <-- И эту */
+  }
+
+  /* Принудительно обрезаем всё содержимое по закруглённым углам */
+    html, body, .app {
+      border-radius: 14px;           /* значение на ваш вкус */
+      overflow: hidden;
+    }
+
+    /* Чтобы видео-фон и оверлей тоже обрезались */
+    .background-video,
+    .overlay,
+    .welcome-screen,
+    .launcher-interface {
+      border-radius: 14px;
+    }
+
+  * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  overflow: hidden;
+  user-select: none;
+  border-radius: 0; /* Убираем любые закругления у корневых элементов */
+}
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 Inter, system-ui, Segoe UI, Roboto, Arial;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .app {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  position: relative;
+  /* Закругления только у внутренних контейнеров, не у корневых */
+  border-radius: 0;
+  overflow: hidden;
+}
+
+  /* Видео-фон БЕЗ закруглений */
+.background-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  border-radius: 0; /* Важно: без закруглений */
+}
+
+/* Пользовательский фон БЕЗ закруглений */
+.custom-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2; /* Выше стандартного видео */
+  border-radius: 0; /* Важно: без закруглений */
+  display: none;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.custom-background.active {
+  display: block;
+}
+
+  /* Оверлей БЕЗ закруглений */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 2;
+  border-radius: 0; /* Важно: без закруглений */
+}
+
+  .titlebar {
+    background: transparent;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 8px;
+    position: relative;
+    z-index: 100;
+    -webkit-app-region: drag;
+  }
+
+  .titlebar-buttons {
+    display: flex;
+    gap: 4px;
+    position: relative;
+    z-index: 101;
+    -webkit-app-region: no-drag;
+  }
+
+  .titlebar-button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 102;
+    pointer-events: auto;
+  }
+
+  .titlebar-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .titlebar-button.close:hover {
+    background: var(--close-hover);
+    color: white;
+  }
+
+  /* === ЗАКРУГЛЕНИЯ ТОЛЬКО У ВНУТРЕННИХ КОНТЕЙНЕРОВ === */
+.welcome-screen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  /* Закругления только здесь */
+  border-radius: 14px;
+  overflow: hidden;
+  margin: 0; /* Убираем отступы */
+}
+
+  .welcome-screen.fade-out {
+    opacity: 0;
+    transform: translateY(-30px);
+    pointer-events: none;
+  }
+
+  .welcome-section {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 80px;
+    margin-bottom: 40px;
+  }
+
+  .welcome-text-container {
+    position: relative;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 600px;
+  }
+
+  .welcome-text {
+    font-size: 3.5rem;
+    font-weight: 200;
+    color: #f8f9fa;
+    margin: 0;
+    position: absolute;
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.3), 0 0 60px rgba(255, 255, 255, 0.1);
+    letter-spacing: 3px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 20;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .welcome-text.active {
+    opacity: 1 !important;
+    transform: translateY(0) scale(1) !important;
+    visibility: visible !important;
+  }
+
+  .start-button {
+    padding: 12px 35px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #b1b1b1;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    user-select: none;
+    position: relative;
+    z-index: 25;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+  }
+
+  .start-button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  /* === Основной интерфейс === */
+  .launcher-interface {
+    flex: 1;
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .launcher-interface.active {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .sidebar {
+    width: 200px;
+    backdrop-filter: blur(20px);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 50px 0 20px;
+    height: 100vh;
+    position: relative;
+  }
+
+  .sidebar-header {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 0 10px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 4px;
+    text-decoration: none;
+    color: var(--sub);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .nav-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+  }
+
+  .nav-item.active {
+    background: rgba(42, 178, 123, 0.15);
+    color: #ffffff;
+  }
+
+  .sidebar-footer {
+    padding: 0 10px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+
+  .main-content {
+    flex: 1;
+    padding: 70px 40px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .version-section {
+    margin-bottom: 30px;
+  }
+
+  .version-section h2 {
+    font-size: 2.5rem;
+    font-weight: 300;
+    color: var(--text);
+    margin-bottom: 15px;
+  }
+
+  .version-section .subtitle {
+    font-size: 1rem;
+    color: var(--sub);
+    margin-bottom: 20px;
+  }
+
+  .version-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 30px 0;
+  }
+
+  .launch-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 40px;
+  }
+
+  .info-panel {
+    display: flex;
+    gap: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+
+  .info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .info-label {
+    font-size: 0.8rem;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .player-nick-input {
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .player-nick-input:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(42, 178, 123, 0.2);
+  }
+
+  .version-selector {
+    position: relative;
+    display: inline-block;
+  }
+
+  .version-dropdown {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    min-width: 160px;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .version-dropdown:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--accent);
+  }
+
+  .version-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: rgba(18, 25, 32, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .version-list.open {
+    display: block;
+  }
+
+  .version-item {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .version-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .version-item.installed {
+    background: rgba(16, 185, 129, 0.05);
+  }
+
+  .version-item.installed:hover {
+    background: rgba(16, 185, 129, 0.12);
+  }
+
+  .version-item-text {
+    flex: 1;
+  }
+
+  .version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    color: var(--installed);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .version-badge svg {
+    width: 10px;
+    height: 10px;
+  }
+
+  .version-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .version-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .version-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+  }
+
+  /* Кастомный скроллбар для основного контента */
+  .main-content::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .main-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .main-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .main-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  .main-content::-webkit-scrollbar-thumb:active {
+    background: rgba(255, 255, 255, 0.35);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* Скрыть скроллбар по умолчанию, показывать только при наведении */
+  .main-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+  }
+
+  .main-content:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* === УЛУЧШЕННАЯ КНОПКА ЗАПУСКА С ПРОГРЕССОМ === */
+  .launch-button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 32px;
+    background: var(--launch-bg);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    min-width: 240px;
+    min-height: 70px;
+  }
+
+  .launch-button:hover:not(:disabled) {
+    background: var(--launch-hover);
+    box-shadow: 0 6px 20px rgba(65, 65, 65, 0.4);
+  }
+
+  .launch-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .launch-button-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 2;
+  }
+
+  .launch-button .stage-text {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    z-index: 2;
+    max-width: 200px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .launch-button .progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+      rgba(42, 178, 123, 0.2) 0%, 
+      rgba(42, 178, 123, 0.3) 100%);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+    z-index: 1;
+  }
+
+  .launch-button .progress-percent {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 500;
+    z-index: 2;
+  }
+
+  .refresh-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    background: var(--launch-bg);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: 10px;
+  }
+
+  .refresh-button:hover {
+    background: var(--launch-hover);
+    box-shadow: 0 6px 20px rgba(65, 65, 65, 0.4);
+  }
+
+  .refresh-button.loading {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* === НАСТРОЙКИ === */
+  .settings-section {
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+  }
+
+  .settings-section h3 {
+    margin-bottom: 15px;
+    color: var(--text);
+    font-size: 1.2rem;
+  }
+
+  .settings-section p {
+    color: var(--sub);
+    line-height: 1.6;
+    margin-bottom: 15px;
+  }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setting-row:last-child {
+    border-bottom: none;
+  }
+
+  .setting-info {
+    flex: 1;
+  }
+
+  .setting-title {
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .setting-description {
+    font-size: 0.8rem;
+    color: var(--sub);
+  }
+
+  .setting-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ram-slider {
+    width: 200px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .ram-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  .ram-value {
+    min-width: 60px;
+    text-align: center;
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .settings-button {
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+  }
+
+  .settings-button:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--accent);
+  }
+
+  /* === TOGGLE SWITCH === */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: .4s;
+    border-radius: 24px;
+    border: 1px solid var(--border);
+  }
+
+  .toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 2px;
+    background-color: var(--text);
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .toggle-slider {
+    background-color: var(--accent);
+  }
+
+  input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+  }
+
+  /* === COMING SOON BADGE === */
+  .coming-soon-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(251, 191, 36, 0.2);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 12px;
+    font-size: 0.7rem;
+    color: #fbbf24;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- Стандартный видео фон -->
+    <video class="background-video" autoplay muted loop>
+      <source src="../assets/background.webm" type="video/webm">
+    </video>
+    
+    <!-- Пользовательский фон (изображение или видео) -->
+    <div class="custom-background" id="customBackground"></div>
+    
+    <div class="overlay"></div>
+
+    <div class="titlebar">
+      <div class="titlebar-buttons">
+        <button class="titlebar-button" id="minimize">
+          <svg width="12" height="12"><rect x="2" y="5" width="8" height="2" fill="currentColor"/></svg>
+        </button>
+        <button class="titlebar-button" id="maximize">
+          <svg width="12" height="12"><rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        </button>
+        <button class="titlebar-button close" id="close">
+          <svg width="12" height="12"><path d="M2 2L10 10M10 2L2 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="welcome-screen" id="welcomeScreen">
+      <div class="welcome-section">
+        <div class="welcome-text-container">
+          <h1 class="welcome-text active">Добро пожаловать</h1>
+          <h1 class="welcome-text">Welcome</h1>
+          <h1 class="welcome-text">Willkommen</h1>
+          <h1 class="welcome-text">ようこそ</h1>
+          <h1 class="welcome-text">欢迎</h1>
+        </div>
+        <button class="start-button" id="startButton">Начать</button>
+      </div>
+    </div>
+
+    <div class="launcher-interface" id="launcherInterface" style="display: none;">
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <img src="../assets/logo.svg" alt="Logo" width="24" height="24">
+            <span>ShineCore</span>
+          </div>
+        </div>
+        <nav class="sidebar-nav">
+          <div class="nav-item active" data-section="main">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2l6 6v6H10v-4H6v4H2V8l6-6z"/>
+            </svg>
+            Главная
+          </div>
+          <div class="nav-item" data-section="versions">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z"/>
+            </svg>
+            Версии
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="nav-item" data-section="settings">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 1a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm6.5-3a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0z"/>
+            </svg>
+            Настройки
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content" id="mainContent"></div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+
+  <script>
+    // === Анимация приветствия ===
+    const texts = document.querySelectorAll('.welcome-text');
+    let idx = 0;
+    setInterval(() => {
+      if (document.getElementById('welcomeScreen').style.display === 'none') return;
+      texts[idx].classList.remove('active');
+      idx = (idx + 1) % texts.length;
+      texts[idx].classList.add('active');
+    }, 3000);
+  </script>
+</body>
+</html>

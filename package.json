@@ -1,0 +1,118 @@
+{
+  "name": "shinecore-launcher",
+  "version": "2.0.0",
+  "description": "ShineCore Minecraft Launcher - современный лаунчер с красивым UI",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "chcp 65001 && electron .",
+    "dev": "chcp 65001 && NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win --x64",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:win-portable": "electron-builder --win portable --x64"
+  },
+  "keywords": [
+    "minecraft",
+    "launcher",
+    "fabric",
+    "electron",
+    "shinecore"
+  ],
+  "author": "ShineCore Team",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.16"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "type": "commonjs",
+  "build": {
+    "appId": "com.shinecore.launcher",
+    "productName": "ShineCore Launcher",
+    "compression": "maximum",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "src/assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+  "target": [
+    {
+      "target": "nsis",
+      "arch": ["x64"]
+    },
+    {
+      "target": "portable",
+      "arch": ["x64"]
+    },
+    {
+      "target": "zip",
+      "arch": ["x64"]
+    }
+  ],
+  "icon": "src/assets/icon.png",
+  "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+  "requestedExecutionLevel": "asInvoker"
+},
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "src/assets/icon.png",
+      "uninstallerIcon": "src/assets/icon.png",
+      "installerHeaderIcon": "src/assets/icon.png",
+      "license": "LICENSE.txt"
+    },
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "src/assets/icon.icns",
+      "category": "public.app-category.games",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "artifactName": "${productName}-${version}-macOS.${ext}"
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ],
+      "window": {
+        "width": 540,
+        "height": 380
+      }
+    },
+    "linux": {
+      "target": ["AppImage", "deb", "rpm"],
+      "icon": "src/assets/icon.png",
+      "category": "Game",
+      "artifactName": "${productName}-${version}-Linux.${ext}",
+      "synopsis": "Современный лаунчер для Minecraft",
+      "description": "ShineCore Launcher - удобный и красивый лаунчер для запуска Minecraft с поддержкой модпаков"
+    }
+  }
+}
