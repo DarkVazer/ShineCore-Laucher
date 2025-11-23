@@ -1,6 +1,6 @@
 # ShineCore Minecraft Launcher
 
-![ShineCore Logo](src/assets/logo.svg)
+![ShineCore Logo](src/assets/icon.ico)
 
 **Современный лаунчер для Minecraft с красивым интерфейсом и расширенными возможностями**
 
